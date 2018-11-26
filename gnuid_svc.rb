@@ -4,6 +4,7 @@ require 'json'
 require 'base64'
 require 'date'
 require 'net/http'
+require 'json'
 
 enable :sessions
 
@@ -17,11 +18,13 @@ $codes = {}
 $nonces = {}
 $tokens = {}
 
+demo_pkey = JSON.parse(`curl  --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://api.reclaim/identity/name/reclaim`)["pubkey"]
+
 $reclaimEndpoint = ARGV[0]
 
 def exchange_code_for_token(id_ticket, expected_nonce)
   p "Expected nonce: "+expected_nonce.to_s
-  resp = `curl -X POST --socks5-hostname '#{$RECLAIM_RUNTIME}':7777 '#{$reclaimEndpoint}/openid/token?grant_type=authorization_code&redirect_uri=https://example.INSERTRPKEYHERE/login&code=#{id_ticket}' -u INSERTRPKEYHERE:secret -k`
+  resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 '#{ENV['RECLAIM_RUNTIME']}/openid/token?grant_type=authorization_code&redirect_uri=https://demo.'#{$demo_pkey}'/login&code=#{id_ticket}' -u '#{$demo_pkey}':secret -k`
   p resp
   json = JSON.parse(resp)
   p json
@@ -156,7 +159,7 @@ get "/login" do
     email = $knownIdentities[identity]["email"]
     session["user"] = identity
     if (email.nil?)
-      return "You did not provide a valid email. Please grant us access to your email!<br/> <a href=http://localhost:8000/index.html#/identities/#{identity}?requested_by=http%3A//localhost%3A4567/&requested_attrs=phone>Grant access</a>"
+        return "You did not provide a valid email. Please grant us access to your email!<br/> <a href=https://ui.reclaim/#/identities/#{identity}?requested_by=http%3A//demo.reclaim/&requested_attrs=phone>Grant access</a>"
     end
     #Handle token contents
     redirect "/"

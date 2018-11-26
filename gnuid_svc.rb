@@ -21,20 +21,23 @@ $nonces = {}
 $tokens = {}
 
 `update-ca-certificates`
-$demo_pkey = JSON.parse(`curl -s --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://api.reclaim/identity/name/reclaim`)["pubkey"]
-
+$demo_pkey = JSON.parse(`curl -s -k --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://api.reclaim/identity/name/reclaim`)["pubkey"]
+p $demo_pkey
 $reclaimEndpoint = ARGV[0]
 
 def exchange_code_for_token(id_ticket, expected_nonce)
   p "Expected nonce: "+expected_nonce.to_s
-  resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 '#{ENV['RECLAIM_RUNTIME']}/openid/token?grant_type=authorization_code&redirect_uri=https://demo.'#{$demo_pkey}'/login&code=#{id_ticket}' -u '#{$demo_pkey}':secret -k`
+  cmd = "curl -X POST --socks5-hostname #{ENV['RECLAIM_RUNTIME']}:7777 'https://api.reclaim/openid/token?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{id_ticket}' -u #{$demo_pkey}:secret -k"
+  p "Executing: "+cmd
+  resp = `#{cmd}`
   p resp
   json = JSON.parse(resp)
   p json
   return nil if json.nil? or json.empty?
   id_token = json["id_token"]
   access_token = json["access_token"]
-  resp = `curl -X POST --socks5-hostname '#{$RECLAIM_RUNTIME}':7777 '#{$reclaimEndpoint}/openid/userinfo' -H 'Authorization: Bearer #{access_token}' -k`
+  p "Access Token: #{$demo_pkey}"
+  resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 'https://api.reclaim/openid/userinfo' -H 'Authorization: Bearer #{access_token}' -k`
   p resp
 
   return nil if id_token.nil?

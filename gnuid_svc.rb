@@ -8,6 +8,8 @@ require 'json'
 
 enable :sessions
 
+set :bind, '0.0.0.0'
+
 requiredInfo = [ "email", "name" ]
 
 knownUserKeys = Array.new
@@ -18,7 +20,8 @@ $codes = {}
 $nonces = {}
 $tokens = {}
 
-demo_pkey = JSON.parse(`curl  --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://api.reclaim/identity/name/reclaim`)["pubkey"]
+`update-ca-certificates`
+$demo_pkey = JSON.parse(`curl -s --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://api.reclaim/identity/name/reclaim`)["pubkey"]
 
 $reclaimEndpoint = ARGV[0]
 
@@ -140,7 +143,7 @@ get "/login" do
       # Token is expired
     #  p "Token expired!"
     #end
-    
+
     if (!token.nil?)
       redirect "/"
     end
@@ -171,7 +174,8 @@ get "/login" do
       :user => getUser(nil),
       :title => "Login",
       :nonce => nonce,
-      :reclaimEndpoint => $reclaimEndpoint
+      :reclaimEndpoint => $reclaimEndpoint,
+      :demo_pkey => $demo_pkey
     }
     #elsif (oauth_code.nil?)
     #  haml :grant, :locals => {:user => getUser(identity), :haml_id => identity, :title => "Information Needed"}

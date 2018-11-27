@@ -21,6 +21,7 @@ $nonces = {}
 $tokens = {}
 
 `update-ca-certificates`
+`sleep 5`
 $demo_pkey = JSON.parse(`curl -s --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://api.reclaim/identity/name/reclaim`)["pubkey"]
 p $demo_pkey
 $reclaimEndpoint = ARGV[0]
@@ -116,11 +117,21 @@ get '/' do
         :user => getUser(identity),
         :title => "Welcome.",
         :subtitle => "Welcome back #{$knownIdentities[identity]["full_name"]} (#{email})",
-        :content => "Login successful! (OpenID Token: #{$tokens[identity]})"}
+        :content => "Login successful!"}
     end
   end
 
   redirect "/login"
+end
+
+get "/access_denied" do
+    return haml :access_denied, :locals => {
+        :user => getUser(nil),
+        :title => "Error",
+        :subtitle => "Access was Denied",
+        :content => "You have chosen to deny access to share your identity with us.<br \>
+        You can try again by clicking the button below.<br \>
+        (The chosen identity provider supplied the following error decription: #{params["error_description"]})"}
 end
 
 get "/login" do
@@ -130,8 +141,17 @@ get "/login" do
 
   # Identity parameter takes precendence over cookie
   #if (!params[:identity].nil?)
-  #  identity = params[:identity]
+  #  id = params[:identity]
   #end
+
+  if(params["error"] == 'access_denied')
+      redirect "https://demo.reclaim/access_denied?error_description=#{params["error_description"]}"
+  else
+    if (params["error"] != nil)
+    p "ERROR! unhandled/unexpected error occurred"
+    redirect "https://demo.reclaim"
+    end
+  end
 
   if (!identity.nil?)
     token = $knownIdentities[identity]

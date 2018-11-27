@@ -2,9 +2,11 @@ FROM ruby:alpine
 
 WORKDIR /opt
 
-COPY target/ ./
+COPY target/Gemfile ./
 
 RUN apk add -U curl && bundle install && rm -rf /var/cache/apk/* /tmp/*
+
+COPY target/ ./
 
 EXPOSE 4567
 

@@ -9,6 +9,7 @@ require 'json'
 enable :sessions
 
 set :bind, '0.0.0.0'
+set :show_exceptions, false
 
 requiredInfo = [ "email", "name" ]
 
@@ -205,4 +206,10 @@ get "/login" do
     #elsif (!identity.nil? and !grant_lbl.nil?)
     #  $knownIdentities[identity] = grant_lbl
   end
+end
+
+# catch all error handler
+# redirect back to main page (login) in case of errors
+error do
+    redirect("/")
 end

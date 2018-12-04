@@ -5,6 +5,7 @@ require 'base64'
 require 'date'
 require 'net/http'
 require 'json'
+require 'jwt'
 
 enable :sessions
 
@@ -22,37 +23,33 @@ $nonces = {}
 $tokens = {}
 
 `update-ca-certificates`
-`sleep 5`
 $demo_pkey = JSON.parse(`curl -s --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://api.reclaim/identity/name/reclaim`)["pubkey"]
 p $demo_pkey
 $reclaimEndpoint = ARGV[0]
 
 def exchange_code_for_token(id_ticket, expected_nonce)
-    p "Expected nonce: "+expected_nonce.to_s
+    #p "Expected nonce: "+expected_nonce.to_s
     cmd = "curl -X POST --socks5-hostname #{ENV['RECLAIM_RUNTIME']}:7777 'https://api.reclaim/openid/token?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{id_ticket}' -u #{$demo_pkey}:secret"
-    p "Executing: "+cmd
+    #p "Executing: "+cmd
     resp = `#{cmd}`
-    p resp
+
     json = JSON.parse(resp)
-    p json
     return nil if json.nil? or json.empty?
     id_token = json["id_token"]
     access_token = json["access_token"]
-    p "Access Token: #{$demo_pkey}"
+
+    #                      JWT     pwd  validation (have no key)
+    payload = JWT.decode(id_token, nil, false)[0] # 0 is payload, 1 is header
+
+    #p "Access Token: #{$demo_pkey}"
     resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 'https://api.reclaim/openid/userinfo' -H 'Authorization: Bearer #{access_token}'`
-    p resp
+    #p resp
 
     return nil if id_token.nil?
-    header_b64 = id_token.split(".")[0]
-    payload_b64 = id_token.split(".")[1]
-    signature = id_token.split(".")[2]
-    plain = Base64.decode64(payload_b64)
     payload_userinfo = JSON.parse(resp)
-    payload = JSON.parse(plain)
-    #return nil unless expected_nonce == payload["nonce"].to_i
+
+    return nil unless expected_nonce == payload["nonce"].to_i
     identity = payload["iss"]
-    p payload
-    p payload_userinfo
     $knownIdentities[identity] = payload_userinfo
     $tokens[identity] = id_token
     $codes[identity] = id_ticket
@@ -176,13 +173,13 @@ get "/login" do
 
     if (!id_ticket.nil?)
         identity = exchange_code_for_token(id_ticket, $nonces[session["id"]])
-        p "Deleting nonce"
+        #p "Deleting nonce"
         $nonces[session["id"]] = nil
         if (identity.nil?)
             return "Error!"
         end
         token = $knownIdentities[identity]
-        p token
+        #p token
         email = $knownIdentities[identity]["email"]
         session["user"] = identity
         if (email.nil?)

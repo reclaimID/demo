@@ -1,0 +1,10 @@
+<table style="width:60%; text-align: left;background-color: #f1f1c1;">
+<tr>
+<th>User</th>
+<th>Message</th>
+</tr>
+<tr>
+<td><a href="mailto:kiliant@in.tum.de">Thomas K</a></td>
+<td>hello :)</td>
+</tr>
+

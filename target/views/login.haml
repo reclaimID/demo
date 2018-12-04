@@ -6,6 +6,8 @@
 -#  %a{:class => "button big", :href => "https://gnunet.org"} Login
 -#  %br
 -#  %br
+<center>
+%h2 #{locals[:subtitle]}
 %div{:class => "mid", :style => "border-right: 1px dashed #aaa; text-align: center;"}
   %span Login using
   %br
@@ -15,4 +17,11 @@
     %span facebook
   %a{:class => "button big", :style => "background: #ea4335; border: 1px solid #ea4335;", :href => "http://google.com"}
     %span Google
+
+!!! 5
+= Haml::Engine.new(File.read("guestbook.txt")).render
+
+</table>
+
+</center>
 

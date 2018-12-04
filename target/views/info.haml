@@ -1,5 +1,19 @@
 %h2 #{locals[:subtitle]}
+<center>
 %span #{locals[:content]}
 %br
-%a{:class => "button big", :href => "/logout"} Logout
+
+!!! 5
+= Haml::Engine.new(File.read("guestbook.txt")).render
+
+</table>
+<br>
+
+:plain
+  <form action="/submit" method="get">
+    <b>Message:</b> <input type="text" size="40" name="message">
+    <input type="submit" value="Submit">
+  </form>
+
+</center>
 

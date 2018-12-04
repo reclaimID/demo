@@ -115,7 +115,7 @@ get '/' do
                 :user => getUser(identity),
                 :title => "Welcome.",
                 :subtitle => "Welcome back #{$knownIdentities[identity]["full_name"]} (#{email})",
-                :content => "Login successful!"}
+                :content => ""}
         end
     end
 
@@ -194,6 +194,7 @@ get "/login" do
         return haml :login, :locals => {
             :user => getUser(nil),
             :title => "Login",
+            :subtitle => "To use the re:claim messaging board, you must first authenticate yourself!",
             :nonce => nonce,
             :reclaimEndpoint => $reclaimEndpoint,
             :demo_pkey => $demo_pkey
@@ -204,6 +205,27 @@ get "/login" do
         #  $knownIdentities[identity] = grant_lbl
     end
 end
+
+get "/submit" do
+    identity = session["user"]
+
+    if (!identity.nil?)
+        token = $knownIdentities[identity]
+        if (!token.nil?)
+            email = token["email"]
+            begin
+                file = File.open("guestbook.txt", "a")
+                file.write("<tr><td><a href=\"mailto:"+email+"\">"+$knownIdentities[identity]["full_name"]+"</a></td><td>"+params["message"]+"</td></tr>")
+            rescue IOError => e
+            ensure
+                file.close unless file.nil?
+            end
+            redirect("/")
+        end
+    end
+
+end
+
 
 # catch all error handler
 # redirect back to main page (login) in case of errors

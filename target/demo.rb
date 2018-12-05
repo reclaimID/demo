@@ -29,9 +29,11 @@ $reclaimEndpoint = ARGV[0]
 
 def exchange_code_for_token(id_ticket, expected_nonce)
     #p "Expected nonce: "+expected_nonce.to_s
-    cmd = "curl -X POST --socks5-hostname #{ENV['RECLAIM_RUNTIME']}:7777 'https://api.reclaim/openid/token?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{id_ticket}' -u #{$demo_pkey}:secret"
-    #p "Executing: "+cmd
+    cmd = "curl -X POST --socks5-hostname #{ENV['RECLAIM_RUNTIME']}:7777 'https://api.reclaim/openid/token?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{id_ticket}' -u #{$demo_pkey}:#{ENV["PSW_SECRET"]}"
+    p "Executing: "+cmd
     resp = `#{cmd}`
+
+    p resp
 
     json = JSON.parse(resp)
     return nil if json.nil? or json.empty?
@@ -39,7 +41,7 @@ def exchange_code_for_token(id_ticket, expected_nonce)
     access_token = json["access_token"]
 
     #                      JWT     pwd  validation (have no key)
-    payload = JWT.decode(id_token, nil, false)[0] # 0 is payload, 1 is header
+    payload = JWT.decode(id_token, ENV["JWT_SECRET"], true,  {algorithm: 'HS512' })[0] # 0 is payload, 1 is header
 
     #p "Access Token: #{$demo_pkey}"
     resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 'https://api.reclaim/openid/userinfo' -H 'Authorization: Bearer #{access_token}'`

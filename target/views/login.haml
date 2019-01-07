@@ -1,11 +1,3 @@
--#  %div Username/Password login:
--#  %div
--#    %input{:placeholder => "username", :style => "margin-bottom: 1em;", :class => "entry"}
--#  %div
--#    %input{:placeholder => "password", :style => "margin-bottom: 1em;", :class => "entry"}
--#  %a{:class => "button big", :href => "https://gnunet.org"} Login
--#  %br
--#  %br
 <center>
 %h2 #{locals[:subtitle]}
 %div{:class => "mid", :style => "border-right: 1px dashed #aaa; text-align: center;"}
@@ -13,10 +5,6 @@
   %br
   %a{:class => "button big", :style => "background: #fff; color: #111; border: 1px solid #111;", :href => "#{locals[:reclaimEndpoint]}/openid/authorize?redirect_uri=https://demo.#{locals[:demo_pkey]}/login&client_id=#{locals[:demo_pkey]}&response_type=code&scope=openid%20email%20full_name&nonce=#{locals[:nonce]}"}
     <span style="font-family: Audiowide">re</span><span style="font-family: Helvetica Neue">:claimID</span>
--#  %a{:class => "button big", :style => "background: #3b5998; border: 1px solid #3b5998;", :href => "http://facebook.com"}
-    %span facebook
-  %a{:class => "button big", :style => "background: #ea4335; border: 1px solid #ea4335;", :href => "http://google.com"}
-    %span Google
 
 !!! 5
 = Haml::Engine.new(File.read("guestbook.txt")).render

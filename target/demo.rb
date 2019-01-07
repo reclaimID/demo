@@ -22,13 +22,11 @@ $codes = {}
 $nonces = {}
 $tokens = {}
 
-#`update-ca-certificates`
 $demo_pkey = JSON.parse(`curl -s --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://api.reclaim/identity/name/reclaim`)["pubkey"]
 p $demo_pkey
 $reclaimEndpoint = ARGV[0]
 
 def exchange_code_for_token(id_ticket, expected_nonce)
-    #p "Expected nonce: "+expected_nonce.to_s
     cmd = "curl -X POST --socks5-hostname #{ENV['RECLAIM_RUNTIME']}:7777 'https://api.reclaim/openid/token?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{id_ticket}' -u #{$demo_pkey}:#{ENV["PSW_SECRET"]}"
     p "Executing: "+cmd
     resp = `#{cmd}`
@@ -43,14 +41,13 @@ def exchange_code_for_token(id_ticket, expected_nonce)
     #                      JWT     pwd  validation (have no key)
     payload = JWT.decode(id_token, ENV["JWT_SECRET"], true,  {algorithm: 'HS512' })[0] # 0 is payload, 1 is header
 
-    #p "Access Token: #{$demo_pkey}"
     resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 'https://api.reclaim/openid/userinfo' -H 'Authorization: Bearer #{access_token}'`
-    #p resp
 
     return nil if id_token.nil?
-    payload_userinfo = JSON.parse(resp)
 
+    payload_userinfo = JSON.parse(resp)
     return nil unless expected_nonce == payload["nonce"].to_i
+
     identity = payload["iss"]
     $knownIdentities[identity] = payload_userinfo
     $tokens[identity] = id_token
@@ -103,16 +100,8 @@ get '/' do
 
     if (!identity.nil?)
         token = $knownIdentities[identity]
-        #if (is_token_expired (token))
-        #  # Token is expired
-        #  redirect "/login"
-        #end
         if (!token.nil?)
             email = token["email"]
-            #msg = "Welcome back #{$knownIdentities[identity]["sub"]}"
-            #msg += "<br/> Your phone number is: #{phone}"
-            #exp = token["exp"] / 1000000
-            #msg += "<br/>Your token will expire at: #{Time.at(exp).to_s}"
             return haml :info, :locals => {
                 :user => getUser(identity),
                 :title => "Welcome.",
@@ -139,11 +128,6 @@ get "/login" do
     token = params[:id_token]
     id_ticket = params[:code]
 
-    # Identity parameter takes precendence over cookie
-    #if (!params[:identity].nil?)
-    #  id = params[:identity]
-    #end
-
     if(params["error"] == 'access_denied')
         redirect "https://demo.reclaim/access_denied?error_description=#{params["error_description"]}"
     else
@@ -156,16 +140,6 @@ get "/login" do
     if (!identity.nil?)
         token = $knownIdentities[identity]
         p token
-        #if ($passwords[identity].nil?)
-        #  # New user -> register
-        #  redirect "/register?identity="+identity
-        #  return
-        #end
-
-        #if (is_token_expired (token))
-        # Token is expired
-        #  p "Token expired!"
-        #end
 
         if (!token.nil?)
             redirect "/"
@@ -175,13 +149,11 @@ get "/login" do
 
     if (!id_ticket.nil?)
         identity = exchange_code_for_token(id_ticket, $nonces[session["id"]])
-        #p "Deleting nonce"
         $nonces[session["id"]] = nil
         if (identity.nil?)
             return "Error!"
         end
         token = $knownIdentities[identity]
-        #p token
         email = $knownIdentities[identity]["email"]
         session["user"] = identity
         if (email.nil?)
@@ -201,10 +173,6 @@ get "/login" do
             :reclaimEndpoint => $reclaimEndpoint,
             :demo_pkey => $demo_pkey
         }
-        #elsif (oauth_code.nil?)
-        #  haml :grant, :locals => {:user => getUser(identity), :haml_id => identity, :title => "Information Needed"}
-        #elsif (!identity.nil? and !grant_lbl.nil?)
-        #  $knownIdentities[identity] = grant_lbl
     end
 end
 
@@ -229,7 +197,7 @@ get "/submit" do
 end
 
 
-# catch all error handler
+# catch-all error handler
 # redirect back to main page (login) in case of errors
 error do
     redirect("/")

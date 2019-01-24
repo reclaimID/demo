@@ -129,11 +129,11 @@ get "/login" do
     id_ticket = params[:code]
 
     if(params["error"] == 'access_denied')
-        redirect "https://demo.reclaim/access_denied?error_description=#{params["error_description"]}"
+        redirect "/access_denied?error_description=#{params["error_description"]}"
     else
         if (params["error"] != nil)
             p "ERROR! unhandled/unexpected error occurred"
-            redirect "https://demo.reclaim"
+            redirect "/"
         end
     end
 

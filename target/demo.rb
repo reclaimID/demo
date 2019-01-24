@@ -132,6 +132,7 @@ get "/login" do
         redirect "/access_denied?error_description=#{params["error_description"]}"
     else
         if (params["error"] != nil)
+            p params["error"]
             p "ERROR! unhandled/unexpected error occurred"
             redirect "/"
         end

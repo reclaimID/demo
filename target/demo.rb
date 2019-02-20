@@ -22,7 +22,7 @@ $codes = {}
 $nonces = {}
 $tokens = {}
 
-$demo_pkey = JSON.parse(`curl -s --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://api.reclaim/identity/name/reclaim`)["pubkey"]
+$demo_pkey = JSON.parse(`curl -s --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://10.1.1.3/identity/name/reclaim`)["pubkey"]
 p $demo_pkey
 $reclaimEndpoint = ARGV[0]
 

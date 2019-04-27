@@ -6,6 +6,7 @@ require 'date'
 require 'net/http'
 require 'json'
 require 'jwt'
+require 'cgi'
 
 enable :sessions
 
@@ -27,7 +28,7 @@ p $demo_pkey
 $reclaimEndpoint = ARGV[0]
 
 def exchange_code_for_token(id_ticket, expected_nonce)
-    cmd = "curl -X POST --socks5-hostname #{ENV['RECLAIM_RUNTIME']}:7777 'https://api.reclaim/openid/token?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{id_ticket}' -u #{$demo_pkey}:#{ENV["PSW_SECRET"]}"
+    cmd = "curl -X POST --socks5-hostname #{ENV['RECLAIM_RUNTIME']}:7777 'https://api.reclaim/openid/token?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{CGI.escape(id_ticket)}' -u #{$demo_pkey}:#{ENV["PSW_SECRET"]}"
     p "Executing: "+cmd
     resp = `#{cmd}`
 

@@ -56,7 +56,9 @@ def exchange_code_for_token(id_ticket, expected_nonce)
     Thread.new do
       begin
         resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 'https://api.reclaim/openid/userinfo' -H 'Authorization: Bearer #{access_token}'`
+        puts resp
         $knownIdentities[identity] = JSON.parse(resp)
+        puts "Got Userinfo: #{$knownIdentities[identity]}"
       rescue JSON::ParserError
         puts "ERROR: Unable to retrieve Userinfo! Using ID Token contents..."
       end

@@ -34,23 +34,36 @@ def exchange_code_for_token(id_ticket, expected_nonce)
 
     p resp
 
-    json = JSON.parse(resp)
+    begin
+      json = JSON.parse(resp)
+    rescue JSON::ParserError
+      puts "ERROR: Unable to parse JSON"
+      return nil
+    end
     return nil if json.nil? or json.empty?
     id_token = json["id_token"]
     access_token = json["access_token"]
+    begin
+      #                      JWT     pwd  validation (have no key)
+      payload = JWT.decode(id_token, ENV["JWT_SECRET"], true,  {algorithm: 'HS512' })[0] # 0 is payload, 1 is header
+    rescue
+      puts "ERROR: Unable to decode JWT"
+      return nil
+    end
 
-    #                      JWT     pwd  validation (have no key)
-    payload = JWT.decode(id_token, ENV["JWT_SECRET"], true,  {algorithm: 'HS512' })[0] # 0 is payload, 1 is header
-
-    resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 'https://api.reclaim/openid/userinfo' -H 'Authorization: Bearer #{access_token}'`
 
     return nil if id_token.nil?
 
-    payload_userinfo = JSON.parse(resp)
+    begin
+      resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 'https://api.reclaim/openid/userinfo' -H 'Authorization: Bearer #{access_token}'`
+      $knownIdentities[identity] = JSON.parse(resp)
+    rescue JSON::ParserError
+      puts "ERROR: Unable to retrieve Userinfo! Using ID Token contents..."
+      $knownIdentities[identity] = payload
+    end
     return nil unless expected_nonce == payload["nonce"].to_i
 
     identity = payload["iss"]
-    $knownIdentities[identity] = payload_userinfo
     $tokens[identity] = id_token
     $codes[identity] = id_ticket
     return identity

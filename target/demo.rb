@@ -42,6 +42,7 @@ def exchange_code_for_token(id_ticket, expected_nonce)
     end
     return nil if json.nil? or json.empty?
     id_token = json["id_token"]
+    return nil if id_token.nil?
     access_token = json["access_token"]
     begin
       #                      JWT     pwd  validation (have no key)
@@ -50,10 +51,7 @@ def exchange_code_for_token(id_ticket, expected_nonce)
       puts "ERROR: Unable to decode JWT"
       return nil
     end
-
-
-    return nil if id_token.nil?
-
+    identity = payload["iss"]
     begin
       resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 'https://api.reclaim/openid/userinfo' -H 'Authorization: Bearer #{access_token}'`
       $knownIdentities[identity] = JSON.parse(resp)
@@ -63,7 +61,6 @@ def exchange_code_for_token(id_ticket, expected_nonce)
     end
     return nil unless expected_nonce == payload["nonce"].to_i
 
-    identity = payload["iss"]
     $tokens[identity] = id_token
     $codes[identity] = id_ticket
     return identity

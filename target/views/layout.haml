@@ -8,6 +8,9 @@
           %a{:class => "button big", :style => "border: 1px solid #111;", :href => "/logout"} Logout
         - if locals[:user].nil?
           %a{:class => "button big", :href => "#{locals[:reclaimEndpoint]}/openid/authorize?redirect_uri=https://demo.#{locals[:demo_pkey]}/login&client_id=#{locals[:demo_pkey]}&response_type=code&scope=openid%20email%20full_name&nonce=#{locals[:nonce]}"}
+            <span style="font-family: Audiowide">re</span><span style="font-family: Helvetica Neue">:claimID</span>
+
+
       %div{:class => "right"}
         %span User:
         %br

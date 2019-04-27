@@ -1,10 +1,10 @@
 <center>
 %h2 #{locals[:subtitle]}
 %div{:class => "mid", :style => "border-right: 1px dashed #aaa; text-align: center;"}
-  %span Login using
+  %span Login by clicking on <span style="font-family: Audiowide">re</span><span style="font-family: Helvetica Neue">:claimID</span> in the top right.
   %br
-  %a{:class => "button reclaim big", :href => "#{locals[:reclaimEndpoint]}/openid/authorize?redirect_uri=https://demo.#{locals[:demo_pkey]}/login&client_id=#{locals[:demo_pkey]}&response_type=code&scope=openid%20email%20full_name&nonce=#{locals[:nonce]}"}
-    <span style="font-family: Audiowide">re</span><span style="font-family: Helvetica Neue">:claimID</span>
+!!!  %a{:class => "button reclaim big", :href => "#{locals[:reclaimEndpoint]}/openid/authorize?redirect_uri=https://demo.#{locals[:demo_pkey]}/login&client_id=#{locals[:demo_pkey]}&response_type=code&scope=openid%20email%20full_name&nonce=#{locals[:nonce]}"}
+!!!    <span style="font-family: Audiowide">re</span><span style="font-family: Helvetica Neue">:claimID</span>
 
 !!! 5
 = Haml::Engine.new(File.read("guestbook.txt")).render

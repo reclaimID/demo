@@ -52,14 +52,19 @@ def exchange_code_for_token(id_ticket, expected_nonce)
       return nil
     end
     identity = payload["iss"]
-    begin
-      resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 'https://api.reclaim/openid/userinfo' -H 'Authorization: Bearer #{access_token}'`
-      $knownIdentities[identity] = JSON.parse(resp)
-    rescue JSON::ParserError
-      puts "ERROR: Unable to retrieve Userinfo! Using ID Token contents..."
-      $knownIdentities[identity] = payload
+    $knownIdentities[identity] = payload
+    Thread.new do
+      begin
+        resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 'https://api.reclaim/openid/userinfo' -H 'Authorization: Bearer #{access_token}'`
+        $knownIdentities[identity] = JSON.parse(resp)
+      rescue JSON::ParserError
+        puts "ERROR: Unable to retrieve Userinfo! Using ID Token contents..."
+      end
     end
-    return nil unless expected_nonce == payload["nonce"].to_i
+    if expected_nonce != payload["nonce"].to_i
+      puts "ERROR: Expected nonce #{expected_nonce} != #{payload["nonce"].to_i}"
+      return nil
+    end
 
     $tokens[identity] = id_token
     $codes[identity] = id_ticket

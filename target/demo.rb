@@ -107,7 +107,7 @@ def exchange_code_for_token(code, expected_nonce)
   resp = oidc_token_request(code)
   puts resp
 
-  tokens = parse_token_response(token)
+  tokens = parse_token_response(resp)
   raise "ERROR: unable to parse tokens!" if tokens.nil?
   payload = tokens[:id_token][0] # 0 is payload, 1 is header
   identity = payload["iss"]

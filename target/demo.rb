@@ -86,7 +86,7 @@ def parse_token_response(response)
   end
   raise "JSON is empty" if json.nil? or json.empty?
   id_jwt = json["id_token"]
-  raise "No ID Token" if id_token.nil?
+  raise "No ID Token" if id_jwt.nil?
   access_token = json["access_token"]
   begin
     #                      JWT     pwd  validation (have no key)
@@ -232,6 +232,8 @@ get "/login" do
       #Handle token contents
       redirect "/"
     rescue Exception => e
+      puts e.message
+      puts e.backtrace.inspect
       return CGI.escapeHTML(e.message)
     end
   elsif (identity.nil?)

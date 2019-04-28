@@ -45,10 +45,12 @@ end
 #$demo_pkey = JSON.parse(`curl --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://api.reclaim/identity/name/reclaim`)["pubkey"]
 begin
   uri = URI.parse("#{$reclaim_endpoint}/identity/name/reclaim")
-  req = Net::HTTP::Post.new(uri)
+  req = Net::HTTP::Get.new(uri)
   Net::HTTP.SOCKSProxy($reclaim_runtime, 7777).start(uri.host, uri.port, :use_ssl => true,
                                                            :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |http|
-    $demo_pkey = JSON.parse(http.request(req).body)["pubkey"]
+    resp = http.request(req).body
+    puts resp
+    $demo_pkey = JSON.parse(resp)["pubkey"]
   end
 rescue
   puts "ERROR: Failed to get my pubkey!"

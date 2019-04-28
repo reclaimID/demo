@@ -83,7 +83,7 @@ end
 #This is only used for our demo automation
 if not ENV["CLIENT_NAME"].nil?
   begin
-    resp = http_get("#{$oidc_endpoint}/identity/name/#{ENV["CLIENT_NAME"]}")
+    resp = http_get("#{$reclaim_rest_endpoint}/identity/name/#{ENV["CLIENT_NAME"]}")
     $client_id = JSON.parse(resp)["pubkey"]
     $redirect_uri="https://demo.#{$client_id}/login"
   rescue Exception => e

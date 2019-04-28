@@ -81,7 +81,7 @@ def parse_token_response(response)
   begin
     json = JSON.parse(response)
   rescue JSON::ParserError
-    puts "ERROR: Unable to parse JSON"
+    p "ERROR: Unable to parse JSON"
     return nil
   end
   raise "JSON is empty" if json.nil? or json.empty?
@@ -91,9 +91,9 @@ def parse_token_response(response)
   begin
     #                      JWT     pwd  validation (have no key)
     id_token = JWT.decode(id_jwt, $client_secret, true,  {algorithm: 'HS512' })
-    payload = id_jwt[0] # 0 is payload, 1 is header
+    payload = id_token[0] # 0 is payload, 1 is header
   rescue
-    puts "ERROR: Unable to decode JWT"
+    p "ERROR: Unable to decode JWT"
     return nil
   end
   return {:access_token => access_token, :id_token => id_token}
@@ -105,7 +105,7 @@ def exchange_code_for_token(code, expected_nonce)
 
   #resp = `#{cmd}`
   resp = oidc_token_request(code)
-  puts resp
+  p resp
 
   tokens = parse_token_response(resp)
   raise "ERROR: unable to parse tokens!" if tokens.nil?
@@ -124,14 +124,14 @@ def exchange_code_for_token(code, expected_nonce)
       Net::HTTP.SOCKSProxy($reclaim_runtime, 7777).start(uri.host, uri.port, :use_ssl => true,
                                                          :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |http|
         resp = http.request(req)
-        puts resp
+        p resp
         $knownIdentities[identity] = JSON.parse(resp)
         puts "Userinfo: #{$knownIdentities[identity]}"
       end
     rescue JSON::ParserError
-      puts "ERROR: Unable to retrieve Userinfo! Using ID Token contents..."
-    rescue
-      puts "ERROR: Userinfo request failed!"
+      p "ERROR: Unable to retrieve Userinfo! Using ID Token contents..."
+    rescue Exception => e
+      p "ERROR: Userinfo request failed! " + e.message
     end
   end
   raise "Expected nonce #{expected_nonce} != #{payload["nonce"].to_i}" if expected_nonce != payload["nonce"].to_i

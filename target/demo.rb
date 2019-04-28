@@ -25,13 +25,10 @@ $passwords = {}
 $codes = {}
 $nonces = {}
 $tokens = {}
+$reclaim_endpoint = ARGV[0]
+$token_endpoint = "#{$reclaim_endpoint}/openid/token"
+$userinfo_endpoint = "#{$reclaim_endpoint}/openid/userinfo"
 
-$demo_pkey = JSON.parse(`curl --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://api.reclaim/identity/name/reclaim`)["pubkey"]
-p $demo_pkey
-$reclaimEndpoint = ARGV[0]
-
-$token_endpoint = 'https://api.reclaim/openid/token'
-$userinfo_endpoint = 'https://api.reclaim/openid/userinfo'
 if ENV['RECLAIM_RUNTIME'].nil?
   $reclaim_runtime = '127.0.0.1'
 else
@@ -44,10 +41,26 @@ else
   $client_secret = ENV["PSW_SECRET"]
 end
 
-def oidc_token_request
+
+#$demo_pkey = JSON.parse(`curl --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://api.reclaim/identity/name/reclaim`)["pubkey"]
+begin
+  uri = URI.parse("#{$reclaim_endpoint}/identity/name/reclaim")
+  req = Net::HTTP::Post.new(uri)
+  Net::HTTP.SOCKSProxy($reclaim_runtime, 7777).start(uri.host, uri.port, :use_ssl => true,
+                                                           :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |http|
+    $demo_pkey = JSON.parse(http.request(req).body)["pubkey"]
+  end
+rescue
+  puts "ERROR: Failed to get my pubkey!"
+  exit
+end
+
+p $demo_pkey
+
+def oidc_token_request(authz_code)
   puts "Executing OpenID Token request"
   begin
-    uri = URI.parse("#{$token_endpoint}?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{CGI.escape(id_ticket)}")
+    uri = URI.parse("#{$token_endpoint}?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{CGI.escape(authz_code)}")
     req = Net::HTTP::Post.new(uri)
     req.basic_auth $demo_pkey, $client_secret
     Net::HTTP.SOCKSProxy($reclaim_runtime, 7777).start(uri.host, uri.port, :use_ssl => true,
@@ -229,7 +242,7 @@ get "/login" do
             :title => "Login",
             :subtitle => "You did not provide a valid email. Please grant us access to your email!",
             :nonce => nonce,
-            :reclaimEndpoint => $reclaimEndpoint,
+            :reclaim_endpoint => $reclaim_endpoint,
             :demo_pkey => $demo_pkey
           }
         end
@@ -244,7 +257,7 @@ get "/login" do
             :title => "Login",
             :subtitle => "To use the re:claim messaging board, you must first authenticate yourself!",
             :nonce => nonce,
-            :reclaimEndpoint => $reclaimEndpoint,
+            :reclaim_endpoint => $reclaim_endpoint,
             :demo_pkey => $demo_pkey
         }
     end

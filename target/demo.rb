@@ -31,10 +31,11 @@ $userinfo_endpoint = "#{$reclaim_rest_endpoint}/openid/userinfo"
 $authorization_endpoint = "https://api.reclaim/openid/authorize"
 
 #OpenID Parameters
-$client_id = "ENTER YOUR CLIENT PKEY HERE"
-$redirect_uri="http://localhost:4567/login"
+$client_id = "ENTER YOUR KEY/CLIENTID HERE"
+$redirect_uri="https://demo.reclaim/login"
 $client_secret = 'secret'
 $jwt_secret = 'secret'
+$myhost = 'https://demo.reclaim'
 
 #re:claimID info
 
@@ -166,7 +167,7 @@ end
 
 get '/logout' do
   logout()
-  redirect to('/login')
+  redirect to($myhost + '/login')
 end
 
 def getUser(identity)
@@ -190,7 +191,7 @@ get '/' do
     end
   end
 
-  redirect "/login"
+  redirect $myhost + "/login"
 end
 
 get "/access_denied" do
@@ -209,12 +210,12 @@ get "/login" do
   id_ticket = params[:code]
 
   if(params["error"] == 'access_denied')
-    redirect "/access_denied?error_description=#{params["error_description"]}"
+    redirect $myhost + "/access_denied?error_description=#{params["error_description"]}"
   else
     if (params["error"] != nil)
       p params["error"]
       p "ERROR! unhandled/unexpected error occurred"
-      redirect "/"
+      redirect $myhost + "/"
     end
   end
 
@@ -223,7 +224,7 @@ get "/login" do
     p token
 
     if (!token.nil?)
-      redirect "/"
+      redirect $myhost + "/"
     end
 
   end
@@ -249,7 +250,7 @@ get "/login" do
         }
       end
       #Handle token contents
-      redirect "/"
+      redirect $myhost + "/"
     rescue Exception => e
       puts e.message
       puts e.backtrace.inspect
@@ -284,7 +285,7 @@ get "/submit" do
       ensure
         file.close unless file.nil?
       end
-      redirect("/")
+      redirect($myhost)
     end
   end
 
@@ -294,5 +295,5 @@ end
 # catch-all error handler
 # redirect back to main page (login) in case of errors
 error do
-  redirect("/")
+  redirect($myhost)
 end

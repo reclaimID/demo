@@ -7,5 +7,3 @@
 <td><a href="mailto:kiliant@in.tum.de">Thomas K</a></td>
 <td>hello :)</td>
 </tr>
-
-<tr><td><a href="mailto:sadsa">sadsda</a></td><td>asdasd</td></tr>

@@ -32,26 +32,40 @@ $reclaimEndpoint = ARGV[0]
 
 $token_endpoint = 'https://api.reclaim/openid/token'
 $userinfo_endpoint = 'https://api.reclaim/openid/userinfo'
+if ENV['RECLAIM_RUNTIME'].nil?
+  $reclaim_runtime = '127.0.0.1'
+else
+  $reclaim_runtime = ENV['RECLAIM_RUNTIME']
+end
+
+if ENV["PSW_SECRET"].nil?
+  $client_secret = 'secret'
+else
+  $client_secret = ENV["PSW_SECRET"]
+end
+
+def oidc_token_request
+  puts "Executing OpenID Token request"
+  begin
+    uri = URI.parse("#{$token_endpoint}?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{CGI.escape(id_ticket)}")
+    req = Net::HTTP::Post.new(uri)
+    req.basic_auth $demo_pkey, $client_secret
+    Net::HTTP.SOCKSProxy($reclaim_runtime, 7777).start(uri.host, uri.port, :use_ssl => true,
+                                                             :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |http|
+      return http.request(req).body
+    end
+  rescue
+    puts "ERROR: Token request failed!"
+    return nil
+  end
+end
 
 def exchange_code_for_token(id_ticket, expected_nonce)
     #cmd = "curl -X POST --socks5-hostname #{ENV['RECLAIM_RUNTIME']}:7777 'https://api.reclaim/openid/token?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{CGI.escape(id_ticket)}' -u #{$demo_pkey}:#{ENV["PSW_SECRET"]}"
     #p "Executing: "+cmd
 
-    puts "Executing OpenID Token request"
-    begin
-      uri = URI.parse("#{$token_endpoint}?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{CGI.escape(id_ticket)}")
-      req = Net::HTTP::Post.new(uri)
-      req.basic_auth $demo_pkey, ENV["PSW_SECRET"]
-      Net::HTTP.SOCKSProxy(ENV['RECLAIM_RUNTIME'], 7777).start(uri.host, uri.port, :use_ssl => true,
-                       :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |http|
-        resp = http.request(req)
-      end
-    rescue
-      puts "ERROR: Token request failed!"
-      return nil
-    end
     #resp = `#{cmd}`
-
+    resp = oidc_token_request(id_ticket)
     puts resp
 
     begin
@@ -66,7 +80,7 @@ def exchange_code_for_token(id_ticket, expected_nonce)
     access_token = json["access_token"]
     begin
       #                      JWT     pwd  validation (have no key)
-      payload = JWT.decode(id_token, ENV["JWT_SECRET"], true,  {algorithm: 'HS512' })[0] # 0 is payload, 1 is header
+      payload = JWT.decode(id_token, $client_secret, true,  {algorithm: 'HS512' })[0] # 0 is payload, 1 is header
     rescue
       puts "ERROR: Unable to decode JWT"
       return nil
@@ -81,13 +95,13 @@ def exchange_code_for_token(id_ticket, expected_nonce)
         uri = URI.parse($userinfo_endpoint)
         req = Net::HTTP::Post.new(uri)
         req['Authorization'] = "Bearer #{access_token}"
-        Net::HTTP.SOCKSProxy(ENV['RECLAIM_RUNTIME'], 7777).start(uri.host, uri.port, :use_ssl => true,
+        Net::HTTP.SOCKSProxy($reclaim_runtime, 7777).start(uri.host, uri.port, :use_ssl => true,
                      :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |http|
           resp = http.request(req)
+          puts resp
+          $knownIdentities[identity] = JSON.parse(resp)
+          puts "Got Userinfo: #{$knownIdentities[identity]}"
         end
-        puts resp
-        $knownIdentities[identity] = JSON.parse(resp)
-        puts "Got Userinfo: #{$knownIdentities[identity]}"
       rescue JSON::ParserError
         puts "ERROR: Unable to retrieve Userinfo! Using ID Token contents..."
       rescue

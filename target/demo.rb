@@ -95,7 +95,7 @@ def parse_token_response(response)
   access_token = json["access_token"]
   begin
     #                      JWT     pwd  validation (have no key)
-    id_token = JWT.decode(id_jwt, $client_secret, true,  {algorithm: 'HS512' })
+    id_token = JWT.decode(id_jwt, $jwt_secret, true,  {algorithm: 'HS512' })
     payload = id_token[0] # 0 is payload, 1 is header
   rescue Exception => e
     p "ERROR: Unable to decode JWT: " + e.message

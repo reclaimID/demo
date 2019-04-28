@@ -16,12 +16,19 @@ set :bind, '0.0.0.0'
 set :show_exceptions, true
 Socksify::debug = true
 
+if ENV['RECLAIM_USE_PROXY'].nil?
+  $reclaim_rest_endpoint = "http://localhost:7776" #Default
+else
+  $reclaim_rest_endpoint = "https://api.reclaim" # HTTP proxy
+end
 
 #OpenID Endpoints
-$oidc_endpoint = "https://api.reclaim"
-$authorization_endpoint = "#{$oidc_endpoint}/openid/authorize"
-$token_endpoint = "#{$oidc_endpoint}/openid/token"
-$userinfo_endpoint = "#{$oidc_endpoint}/openid/userinfo"
+$use_proxy = !ENV['RECLAIM_USE_PROXY'].nil?
+$token_endpoint = "#{$reclaim_rest_endpoint}/openid/token"
+$userinfo_endpoint = "#{$reclaim_rest_endpoint}/openid/userinfo"
+
+#DO NOT CHANGE!
+$authorization_endpoint = "https://api.reclaim/openid/authorize"
 
 #OpenID Parameters
 $client_id = "ENTER YOUR CLIENT PKEY HERE"
@@ -33,8 +40,8 @@ $jwt_secret = 'secret'
 
 #The runtime IP is usually correct like this unless you run in a virtual
 #environment (e.g. docker)
-$reclaim_runtime = '127.0.0.1'
-$reclaim_runtime = ENV['RECLAIM_RUNTIME'] unless ENV['RECLAIM_RUNTIME'].nil?
+$gns_proxy = '127.0.0.1'
+$gns_proxy = ENV['RECLAIM_RUNTIME'] unless ENV['RECLAIM_RUNTIME'].nil?
 
 $client_secret = 'secret'
 $client_secret = ENV["PSW_SECRET"] unless ENV["PSW_SECRET"].nil?
@@ -49,18 +56,36 @@ $codes = {}
 $nonces = {}
 $tokens = {}
 
+def http_request_proxy(req, uri)
+  Net::HTTP.SOCKSProxy($gns_proxy, 7777).start(uri.host, uri.port, :use_ssl => true,
+                                                     :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |http|
+    resp = http.request(req).body
+    p resp
+    return resp
+  end
+end
+
+def http_request(req, uri)
+  return http_request_proxy(req, uri) if $use_proxy
+  Net::HTTP.start(uri.host, uri.port) do |http|
+    resp = http.request(req).body
+    p resp
+    return resp
+  end
+end
+
+def http_get(url)
+  uri = URI.parse(url)
+  req = Net::HTTP::Get.new(uri)
+  return http_request(req,uri)
+end
+
 #This is only used for our demo automation
 if not ENV["CLIENT_NAME"].nil?
   begin
-    uri = URI.parse("#{$oidc_endpoint}/identity/name/#{ENV["CLIENT_NAME"]}")
-    req = Net::HTTP::Get.new(uri)
-    Net::HTTP.SOCKSProxy($reclaim_runtime, 7777).start(uri.host, uri.port, :use_ssl => true,
-                                                     :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |http|
-    resp = http.request(req).body
-    puts resp
+    resp = http_get("#{$oidc_endpoint}/identity/name/#{ENV["CLIENT_NAME"]}")
     $client_id = JSON.parse(resp)["pubkey"]
     $redirect_uri="https://demo.#{$client_id}/login"
-  end
   rescue Exception => e
     puts "ERROR: Failed to get my pubkey! (#{e.message})"
     puts e.backtrace
@@ -76,10 +101,7 @@ def oidc_token_request(authz_code)
     uri = URI.parse("#{$token_endpoint}?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{CGI.escape(authz_code)}")
     req = Net::HTTP::Post.new(uri)
     req.basic_auth $demo_pkey, $client_secret
-    Net::HTTP.SOCKSProxy($reclaim_runtime, 7777).start(uri.host, uri.port, :use_ssl => true,
-                                                       :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |http|
-      return http.request(req).body
-    end
+    return http_request(req,uri)
   rescue Exception => e
     puts "ERROR: Token request failed! (#{e.message})"
     puts e.backtrace
@@ -126,13 +148,10 @@ def exchange_code_for_token(code, expected_nonce)
       uri = URI.parse($userinfo_endpoint)
       req = Net::HTTP::Post.new(uri)
       req['Authorization'] = "Bearer #{tokens[:access_token]}"
-      Net::HTTP.SOCKSProxy($reclaim_runtime, 7777).start(uri.host, uri.port, :use_ssl => true,
-                                                         :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |http|
-        resp = http.request(req)
-        p resp
-        $knownIdentities[identity] = JSON.parse(resp)
-        p "Userinfo: #{$knownIdentities[identity]}"
-      end
+      resp = http_request(req,uri)
+      p resp
+      $knownIdentities[identity] = JSON.parse(resp)
+      p "Userinfo: #{$knownIdentities[identity]}"
     rescue JSON::ParserError
       p "ERROR: Unable to retrieve Userinfo! Using ID Token contents..."
     rescue Exception => e

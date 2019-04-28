@@ -69,8 +69,9 @@ def oidc_token_request(authz_code)
                                                              :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |http|
       return http.request(req).body
     end
-  rescue
-    puts "ERROR: Token request failed!"
+  rescue Exception => e
+    puts "ERROR: Token request failed! (#{e.message})"
+    puts e.backtrace
     return nil
   end
 end

@@ -7,11 +7,14 @@ require 'net/http'
 require 'json'
 require 'jwt'
 require 'cgi'
+require 'socksify'
+require 'socksify/http'
 
 enable :sessions
 
 set :bind, '0.0.0.0'
 set :show_exceptions, false
+Socksify::debug = true
 
 requiredInfo = [ "email", "name" ]
 
@@ -27,12 +30,29 @@ $demo_pkey = JSON.parse(`curl --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777
 p $demo_pkey
 $reclaimEndpoint = ARGV[0]
 
-def exchange_code_for_token(id_ticket, expected_nonce)
-    cmd = "curl -X POST --socks5-hostname #{ENV['RECLAIM_RUNTIME']}:7777 'https://api.reclaim/openid/token?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{CGI.escape(id_ticket)}' -u #{$demo_pkey}:#{ENV["PSW_SECRET"]}"
-    p "Executing: "+cmd
-    resp = `#{cmd}`
+$token_endpoint = 'https://api.reclaim/openid/token'
+$userinfo_endpoint = 'https://api.reclaim/openid/userinfo'
 
-    p resp
+def exchange_code_for_token(id_ticket, expected_nonce)
+    #cmd = "curl -X POST --socks5-hostname #{ENV['RECLAIM_RUNTIME']}:7777 'https://api.reclaim/openid/token?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{CGI.escape(id_ticket)}' -u #{$demo_pkey}:#{ENV["PSW_SECRET"]}"
+    #p "Executing: "+cmd
+
+    puts "Executing OpenID Token request"
+    begin
+      uri = URI.parse("#{$token_endpoint}?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{CGI.escape(id_ticket)}")
+      req = Net::HTTP::Post.new(uri)
+      req.basic_auth $demo_pkey, ENV["PSW_SECRET"]
+      Net::HTTP.SOCKSProxy(ENV['RECLAIM_RUNTIME'], 7777).start(uri.host, uri.port, :use_ssl => true,
+                       :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |http|
+        resp = http.request(req)
+      end
+    rescue
+      puts "ERROR: Token request failed!"
+      return nil
+    end
+    #resp = `#{cmd}`
+
+    puts resp
 
     begin
       json = JSON.parse(resp)
@@ -53,14 +73,25 @@ def exchange_code_for_token(id_ticket, expected_nonce)
     end
     identity = payload["iss"]
     $knownIdentities[identity] = payload
+
+    #Async retrieval of userinfo
     Thread.new do
+      #resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 'https://api.reclaim/openid/userinfo' -H 'Authorization: Bearer #{access_token}'`
       begin
-        resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 'https://api.reclaim/openid/userinfo' -H 'Authorization: Bearer #{access_token}'`
+        uri = URI.parse(#{$userinfo_endpoint})
+        req = Net::HTTP::Post.new(uri)
+        req['Authorization'] = "Bearer #{access_token}"
+        Net::HTTP.SOCKSProxy(ENV['RECLAIM_RUNTIME'], 7777).start(uri.host, uri.port, :use_ssl => true,
+                     :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |http|
+          resp = http.request(req)
+        end
         puts resp
         $knownIdentities[identity] = JSON.parse(resp)
         puts "Got Userinfo: #{$knownIdentities[identity]}"
       rescue JSON::ParserError
         puts "ERROR: Unable to retrieve Userinfo! Using ID Token contents..."
+      rescue
+        puts "ERROR: Userinfo request failed!"
       end
     end
     if expected_nonce != payload["nonce"].to_i

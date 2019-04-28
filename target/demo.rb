@@ -283,7 +283,7 @@ get "/submit" do
       email = token["email"]
       begin
         file = File.open("guestbook.txt", "a")
-        file.write("<tr><td><a href=\"mailto:"+email+"\">"+$knownIdentities[identity]["full_name"]+"</a></td><td>"+params["message"]+"</td></tr>")
+        file.write("<tr><td><a href=\"mailto:"+email+"\">"+$knownIdentities[identity]["full_name"]+"</a></td><td>"+CGI.escapeHTML(params["message"])+"</td></tr>")
       rescue IOError => e
       ensure
         file.close unless file.nil?

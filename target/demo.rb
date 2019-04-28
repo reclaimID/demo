@@ -261,6 +261,7 @@ get "/login" do
       puts e.backtrace.inspect
       return CGI.escapeHTML(e.message)
     end
+  end
   nonce = rand(100000)
   session["id"] = rand(100000)
   $nonces[session["id"]] = nonce

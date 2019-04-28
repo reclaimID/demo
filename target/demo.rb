@@ -13,54 +13,59 @@ require 'socksify/http'
 enable :sessions
 
 set :bind, '0.0.0.0'
-set :show_exceptions, false
+set :show_exceptions, true
 Socksify::debug = true
 
-requiredInfo = [ "email", "name" ]
 
-knownUserKeys = Array.new
+#OpenID Endpoints
+$oidc_endpoint = "https://api.reclaim"
+$authorization_endpoint = "#{$oidc_endpoint}/openid/authorize"
+$token_endpoint = "#{$oidc_endpoint}/openid/token"
+$userinfo_endpoint = "#{$oidc_endpoint}/openid/userinfo"
 
+#OpenID Parameters
+$client_id = "ENTER YOUR CLIENT PKEY HERE"
+$redirect_uri="http://localhost:4567/login"
+$client_secret = 'secret'
+$jwt_secret = 'secret'
+
+#re:claimID info
+
+#The runtime IP is usually correct like this unless you run in a virtual
+#environment (e.g. docker)
+$reclaim_runtime = '127.0.0.1'
+$reclaim_runtime = ENV['RECLAIM_RUNTIME'] unless ENV['RECLAIM_RUNTIME'].nil?
+
+$client_secret = 'secret'
+$client_secret = ENV["PSW_SECRET"] unless ENV["PSW_SECRET"].nil?
+
+$jwt_secret = 'secret'
+$jwt_secret = ENV["JWT_SECRET"] unless ENV["JWT_SECRET"].nil?
+
+# Global program variables
 $knownIdentities = {}
 $passwords = {}
 $codes = {}
 $nonces = {}
 $tokens = {}
-$reclaim_endpoint = ARGV[0]
-$token_endpoint = "#{$reclaim_endpoint}/openid/token"
-$userinfo_endpoint = "#{$reclaim_endpoint}/openid/userinfo"
 
-if ENV['RECLAIM_RUNTIME'].nil?
-  $reclaim_runtime = '127.0.0.1'
-else
-  $reclaim_runtime = ENV['RECLAIM_RUNTIME']
-end
-
-if ENV["PSW_SECRET"].nil?
-  $client_secret = 'secret'
-else
-  $client_secret = ENV["PSW_SECRET"]
-end
-
-if ENV["JWT_SECRET"].nil?
-  $jwt_secret = 'secret'
-else
-  $jwt_secret = ENV["JWT_SECRET"]
-end
-
-#$demo_pkey = JSON.parse(`curl --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://api.reclaim/identity/name/reclaim`)["pubkey"]
-begin
-  uri = URI.parse("#{$reclaim_endpoint}/identity/name/reclaim")
-  req = Net::HTTP::Get.new(uri)
-  Net::HTTP.SOCKSProxy($reclaim_runtime, 7777).start(uri.host, uri.port, :use_ssl => true,
+#This is only used for our demo automation
+if not ENV["CLIENT_NAME"].nil?
+  begin
+    uri = URI.parse("#{$oidc_endpoint}/identity/name/#{ENV["CLIENT_NAME"]}")
+    req = Net::HTTP::Get.new(uri)
+    Net::HTTP.SOCKSProxy($reclaim_runtime, 7777).start(uri.host, uri.port, :use_ssl => true,
                                                      :verify_mode => OpenSSL::SSL::VERIFY_NONE) do |http|
     resp = http.request(req).body
     puts resp
-    $demo_pkey = JSON.parse(resp)["pubkey"]
+    $client_id = JSON.parse(resp)["pubkey"]
+    $redirect_uri="https://demo.#{$client_id}/login"
   end
-rescue Exception => e
-  puts "ERROR: Failed to get my pubkey! (#{e.message})"
-  puts e.backtrace
-  exit
+  rescue Exception => e
+    puts "ERROR: Failed to get my pubkey! (#{e.message})"
+    puts e.backtrace
+    exit
+  end
 end
 
 p $demo_pkey
@@ -105,10 +110,6 @@ def parse_token_response(response)
 end
 
 def exchange_code_for_token(code, expected_nonce)
-  #cmd = "curl -X POST --socks5-hostname #{ENV['RECLAIM_RUNTIME']}:7777 'https://api.reclaim/openid/token?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{CGI.escape(id_ticket)}' -u #{$demo_pkey}:#{ENV["PSW_SECRET"]}"
-  #p "Executing: "+cmd
-
-  #resp = `#{cmd}`
   resp = oidc_token_request(code)
   p resp
 
@@ -120,7 +121,6 @@ def exchange_code_for_token(code, expected_nonce)
 
   #Async retrieval of userinfo
   Thread.new do
-    #resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 'https://api.reclaim/openid/userinfo' -H 'Authorization: Bearer #{access_token}'`
     begin
       puts "Getting Userinfo..."
       uri = URI.parse($userinfo_endpoint)
@@ -131,7 +131,7 @@ def exchange_code_for_token(code, expected_nonce)
         resp = http.request(req)
         p resp
         $knownIdentities[identity] = JSON.parse(resp)
-        puts "Userinfo: #{$knownIdentities[identity]}"
+        p "Userinfo: #{$knownIdentities[identity]}"
       end
     rescue JSON::ParserError
       p "ERROR: Unable to retrieve Userinfo! Using ID Token contents..."
@@ -230,8 +230,9 @@ get "/login" do
           :title => "Login",
           :subtitle => "You did not provide a valid email. Please grant us access to your email!",
           :nonce => nonce,
-          :reclaim_endpoint => $reclaim_endpoint,
-          :demo_pkey => $demo_pkey
+          :authorize_endpoint => $authorize_endpoint,
+          :redicret_uri => $redirect_uri,
+          :client_id => $client_id
         }
       end
       #Handle token contents
@@ -250,8 +251,9 @@ get "/login" do
       :title => "Login",
       :subtitle => "To use the re:claim messaging board, you must first authenticate yourself!",
       :nonce => nonce,
-      :reclaim_endpoint => $reclaim_endpoint,
-      :demo_pkey => $demo_pkey
+      :authorize_endpoint => $authorize_endpoint,
+      :redirect_uri => $redirect_uri,
+      :client_id => $client_id
     }
   end
 end

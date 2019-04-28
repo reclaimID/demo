@@ -249,7 +249,7 @@ get "/login" do
           :title => "Login",
           :subtitle => "You did not provide a valid email. Please grant us access to your email!",
           :nonce => nonce,
-          :authorize_endpoint => $authorize_endpoint,
+          :authorization_endpoint => $authorization_endpoint,
           :redicret_uri => $redirect_uri,
           :client_id => $client_id
         }
@@ -261,20 +261,18 @@ get "/login" do
       puts e.backtrace.inspect
       return CGI.escapeHTML(e.message)
     end
-  elsif (identity.nil?)
-    nonce = rand(100000)
-    session["id"] = rand(100000)
-    $nonces[session["id"]] = nonce
-    return haml :login, :locals => {
-      :user => getUser(nil),
-      :title => "Login",
-      :subtitle => "To use the re:claim messaging board, you must first authenticate yourself!",
-      :nonce => nonce,
-      :authorize_endpoint => $authorize_endpoint,
-      :redirect_uri => $redirect_uri,
-      :client_id => $client_id
-    }
-  end
+  nonce = rand(100000)
+  session["id"] = rand(100000)
+  $nonces[session["id"]] = nonce
+  return haml :login, :locals => {
+    :user => getUser(nil),
+    :title => "Login",
+    :subtitle => "To use the re:claim messaging board, you must first authenticate yourself!",
+    :nonce => nonce,
+    :authorization_endpoint => $authorization_endpoint,
+    :redirect_uri => $redirect_uri,
+    :client_id => $client_id
+  }
 end
 
 get "/submit" do

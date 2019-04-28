@@ -8,3 +8,4 @@
 <td>hello :)</td>
 </tr>
 
+<tr><td><a href="mailto:sadsa">sadsda</a></td><td>asdasd</td></tr>

@@ -42,11 +42,7 @@ $jwt_secret = 'secret'
 #environment (e.g. docker)
 $gns_proxy = '127.0.0.1'
 $gns_proxy = ENV['RECLAIM_RUNTIME'] unless ENV['RECLAIM_RUNTIME'].nil?
-
-$client_secret = 'secret'
 $client_secret = ENV["PSW_SECRET"] unless ENV["PSW_SECRET"].nil?
-
-$jwt_secret = 'secret'
 $jwt_secret = ENV["JWT_SECRET"] unless ENV["JWT_SECRET"].nil?
 
 # Global program variables

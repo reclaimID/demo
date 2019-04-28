@@ -78,7 +78,7 @@ def exchange_code_for_token(id_ticket, expected_nonce)
     Thread.new do
       #resp = `curl -X POST --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 'https://api.reclaim/openid/userinfo' -H 'Authorization: Bearer #{access_token}'`
       begin
-        uri = URI.parse(#{$userinfo_endpoint})
+        uri = URI.parse($userinfo_endpoint)
         req = Net::HTTP::Post.new(uri)
         req['Authorization'] = "Bearer #{access_token}"
         Net::HTTP.SOCKSProxy(ENV['RECLAIM_RUNTIME'], 7777).start(uri.host, uri.port, :use_ssl => true,
@@ -130,12 +130,13 @@ def is_token_expired (token)
     end
 end
 
+def logout()
+  session["user"] = nil
+end
+
 get '/logout' do
-    if (!session["user"].nil?)
-        session["user"] = nil
-        redirect to('/login')
-    end
-    return "Not logged in"
+    logout()
+    redirect to('/login')
 end
 
 def getUser(identity)
@@ -166,7 +167,7 @@ get "/access_denied" do
     return haml :access_denied, :locals => {
         :user => getUser(nil),
         :title => "Error",
-        :subtitle => "Access was Denied",
+        :subtitle => "Access was denied",
         :content => "You have chosen to deny access to share your identity with us.<br \>
         You can try again by clicking the button below.<br \>
         (The chosen identity provider supplied the following error decription: #{params["error_description"]})"}
@@ -207,7 +208,16 @@ get "/login" do
         email = $knownIdentities[identity]["email"]
         session["user"] = identity
         if (email.nil?)
-            return "You did not provide a valid email. Please grant us access to your email!<br/> <a href=https://ui.reclaim/#/identities/#{identity}?requested_by=http%3A//demo.reclaim/&requested_attrs=phone>Grant access</a>"
+          #return "You did not provide a valid email. Please grant us access to your email!<br/> <a href=https://ui.reclaim/#/identities/#{identity}?requested_by=http%3A//demo.reclaim/&requested_attrs=phone>Grant access</a>"
+          logout()
+          return haml :login, :locals => {
+            :user => getUser(nil),
+            :title => "Login",
+            :subtitle => "You did not provide a valid email. Please grant us access to your email!",
+            :nonce => nonce,
+            :reclaimEndpoint => $reclaimEndpoint,
+            :demo_pkey => $demo_pkey
+          }
         end
         #Handle token contents
         redirect "/"

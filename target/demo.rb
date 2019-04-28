@@ -93,14 +93,12 @@ if not ENV["CLIENT_NAME"].nil?
   end
 end
 
-p $demo_pkey
-
 def oidc_token_request(authz_code)
   puts "Executing OpenID Token request"
   begin
-    uri = URI.parse("#{$token_endpoint}?grant_type=authorization_code&redirect_uri=https://demo.#{$demo_pkey}/login&code=#{CGI.escape(authz_code)}")
+    uri = URI.parse("#{$token_endpoint}?grant_type=authorization_code&redirect_uri=#{$redirect_uri}&code=#{CGI.escape(authz_code)}")
     req = Net::HTTP::Post.new(uri)
-    req.basic_auth $demo_pkey, $client_secret
+    req.basic_auth $client_id, $client_secret
     return http_request(req,uri)
   rescue Exception => e
     puts "ERROR: Token request failed! (#{e.message})"

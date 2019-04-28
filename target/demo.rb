@@ -41,6 +41,11 @@ else
   $client_secret = ENV["PSW_SECRET"]
 end
 
+if ENV["JWT_SECRET"].nil?
+  $jwt_secret = 'secret'
+else
+  $jwt_secret = ENV["JWT_SECRET"]
+end
 
 #$demo_pkey = JSON.parse(`curl --socks5-hostname '#{ENV['RECLAIM_RUNTIME']}':7777 https://api.reclaim/identity/name/reclaim`)["pubkey"]
 begin
@@ -92,8 +97,8 @@ def parse_token_response(response)
     #                      JWT     pwd  validation (have no key)
     id_token = JWT.decode(id_jwt, $client_secret, true,  {algorithm: 'HS512' })
     payload = id_token[0] # 0 is payload, 1 is header
-  rescue
-    p "ERROR: Unable to decode JWT"
+  rescue Exception => e
+    p "ERROR: Unable to decode JWT: " + e.message
     return nil
   end
   return {:access_token => access_token, :id_token => id_token}

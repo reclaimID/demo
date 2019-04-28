@@ -79,7 +79,7 @@ end
 
 def parse_token_response(response)
   begin
-    json = JSON.parse(resp)
+    json = JSON.parse(response)
   rescue JSON::ParserError
     puts "ERROR: Unable to parse JSON"
     return nil
@@ -232,7 +232,7 @@ get "/login" do
       #Handle token contents
       redirect "/"
     rescue Exception => e
-      return e.message
+      return CGI.escapeHTML(e.message)
     end
   elsif (identity.nil?)
     nonce = rand(100000)

@@ -52,8 +52,9 @@ begin
     puts resp
     $demo_pkey = JSON.parse(resp)["pubkey"]
   end
-rescue
-  puts "ERROR: Failed to get my pubkey!"
+rescue Exception => e
+  puts "ERROR: Failed to get my pubkey! (#{e.message})"
+  puts e.backtrace
   exit
 end
 

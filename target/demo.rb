@@ -10,17 +10,17 @@ require 'cgi'
 require 'socksify'
 require 'socksify/http'
 
+require './config.rb'
+
 enable :sessions
 
 set :bind, '0.0.0.0'
 set :show_exceptions, true
 Socksify::debug = true
 
-if ENV['RECLAIM_USE_PROXY'].nil?
-  $reclaim_rest_endpoint = "http://localhost:7776" #Default
-else
-  $reclaim_rest_endpoint = "https://api.reclaim" # HTTP proxy
-end
+config = DemoConfig::load()
+$reclaim_rest_endpoint = config['system']['runtime']
+$reclaim_rest_endpoint = "https://api.reclaim" unless ENV['RECLAIM_USE_PROXY'].nil?
 
 #OpenID Endpoints
 $use_proxy = !ENV['RECLAIM_USE_PROXY'].nil?
@@ -31,11 +31,11 @@ $userinfo_endpoint = "#{$reclaim_rest_endpoint}/openid/userinfo"
 $authorization_endpoint = "https://api.reclaim/openid/authorize"
 
 #OpenID Parameters
-$client_id = "ENTER YOUR KEY/CLIENTID HERE"
-$redirect_uri="https://demo.reclaim/login"
-$client_secret = 'secret'
-$jwt_secret = 'secret'
-$myhost = 'https://demo.reclaim'
+$client_id = config['openid']['client_id']
+$redirect_uri= config['openid']['redirect_uri']
+$client_secret = config['openid']['client_secret']
+$jwt_secret = config['openid']['jwt_secret']
+$myhost = config['system']['host']
 
 #re:claimID info
 

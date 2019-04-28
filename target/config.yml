@@ -1,0 +1,9 @@
+system:
+  host: 'https://demo.reclaim'
+  runtime: 'http://localhost:7776'
+openid:
+  client_id: 'ENTER YOUR KEY HERE'
+  client_secret: 'secret'
+  redirect_uri: 'https://demo.reclaim/login'
+  jwt_secret: 'secret'
+

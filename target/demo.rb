@@ -172,8 +172,8 @@ end
 
 def getUser(identity)
   return nil if identity.nil? or $knownIdentities[identity].nil?
-  return $knownIdentities[identity]["full_name"] unless $knownIdentities[identity]["full_name"].nil?
-  return $knownIdentities[identity]["sub"]
+  return CGI.escapeHTML($knownIdentities[identity]["full_name"]) unless $knownIdentities[identity]["full_name"].nil?
+  return CGI.escapeHTML($knownIdentities[identity]["sub"])
 end
 
 get '/' do
@@ -280,7 +280,7 @@ get "/submit" do
       email = token["email"]
       begin
         file = File.open("guestbook.txt", "a")
-        file.write("<tr><td><a href=\"mailto:"+email+"\">"+$knownIdentities[identity]["full_name"]+"</a></td><td>"+CGI.escapeHTML(params["message"])+"</td></tr>")
+        file.write("<tr><td><a href=\"mailto:"+CGI.escapeHTML(email)+"\">"+CGI.escapeHTML($knownIdentities[identity]["full_name"])+"</a></td><td>"+CGI.escapeHTML(params["message"])+"</td></tr>")
       rescue IOError => e
       ensure
         file.close unless file.nil?

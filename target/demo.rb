@@ -186,7 +186,7 @@ get '/' do
       return haml :info, :locals => {
         :user => getUser(identity),
         :title => "Welcome.",
-        :subtitle => "Welcome back #{$knownIdentities[identity]["full_name"]} (#{email})",
+        :subtitle => "Welcome back #{getUser(identity)} (#{CGI.escapeHTML(email)})",
         :content => ""}
     end
   end

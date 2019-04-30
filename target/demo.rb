@@ -53,6 +53,7 @@ $codes = {}
 $nonces = {}
 $tokens = {}
 $defaultMessages = [{:senderEmail => "john@doe.com", :senderName => "John Doe", :message => "Hello World!"}]
+$messages = {}
 
 def http_request_proxy(req, uri)
   Net::HTTP.SOCKSProxy($gns_proxy, 7777).start(uri.host, uri.port, :use_ssl => true,

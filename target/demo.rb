@@ -52,6 +52,7 @@ $passwords = {}
 $codes = {}
 $nonces = {}
 $tokens = {}
+$defaultMessages = [{:senderEmail => "john@doe.com", :senderName => "John Doe", :message => "Hello World!"}]
 
 def http_request_proxy(req, uri)
   Net::HTTP.SOCKSProxy($gns_proxy, 7777).start(uri.host, uri.port, :use_ssl => true,
@@ -180,6 +181,7 @@ get '/' do
   identity = session["user"]
 
   if (!identity.nil?)
+    $messages[identity] = $defaultMessages if $messages[identity].nil?
     token = $knownIdentities[identity]
     if (!token.nil?)
       email = token["email"]
@@ -187,6 +189,7 @@ get '/' do
         :user => getUser(identity),
         :title => "Welcome.",
         :subtitle => "Welcome back #{getUser(identity)} (#{CGI.escapeHTML(email)})",
+        :messages => $messages[identity],
         :content => ""}
     end
   end
@@ -246,7 +249,8 @@ get "/login" do
           :nonce => nonce,
           :authorization_endpoint => $authorization_endpoint,
           :redicret_uri => $redirect_uri,
-          :client_id => $client_id
+          :client_id => $client_id,
+          :messages => $defaultMessages
         }
       end
       #Handle token contents
@@ -267,7 +271,8 @@ get "/login" do
     :nonce => nonce,
     :authorization_endpoint => $authorization_endpoint,
     :redirect_uri => $redirect_uri,
-    :client_id => $client_id
+    :client_id => $client_id,
+    :messages => $defaultMessages
   }
 end
 
@@ -278,13 +283,10 @@ get "/submit" do
     token = $knownIdentities[identity]
     if (!token.nil?)
       email = token["email"]
-      begin
-        file = File.open("guestbook.txt", "a")
-        file.write("<tr><td><a href=\"mailto:"+CGI.escapeHTML(email)+"\">"+CGI.escapeHTML($knownIdentities[identity]["full_name"])+"</a></td><td>"+CGI.escapeHTML(params["message"])+"</td></tr>")
-      rescue IOError => e
-      ensure
-        file.close unless file.nil?
-      end
+      msg = {:senderEmail=>CGI.escapeHTML(email),
+             :senderName=>CGI.escapeHTML($knownIdentities[identity]["full_name"]),
+             :message=>CGI.escapeHTML(params["message"])}
+      $messages[identity] << msg
       redirect($myhost)
     end
   end

@@ -3,8 +3,20 @@
 %span #{locals[:content]}
 %br
 
-!!! 5
-= Haml::Engine.new(File.read("guestbook.txt")).render
+%table{:style=>"width:60%; text-align: left;background-color: #f1f1c1;"}
+  %tr
+    %th
+      User
+    %th
+      Message
+  - locals[:messages].each do |msg|
+    %tr
+      %td
+        %a{:href=>"mailto:#{msg[:senderEmail]}"}
+          #{msg[:senderName]}
+      %td
+        #{msg[:message]}
+
 
 </table>
 <br>

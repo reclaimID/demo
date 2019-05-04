@@ -182,7 +182,7 @@ get '/' do
   identity = session["user"]
 
   if (!identity.nil?)
-    $messages[identity] = $defaultMessages if $messages[identity].nil?
+    $messages[identity] = $defaultMessages.dup if $messages[identity].nil?
     token = $knownIdentities[identity]
     if (!token.nil?)
       email = token["email"]

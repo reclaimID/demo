@@ -9,6 +9,8 @@ require 'jwt'
 require 'cgi'
 require 'socksify'
 require 'socksify/http'
+require 'securerandom'
+require 'digest'
 
 require './config.rb'
 
@@ -51,6 +53,7 @@ $knownIdentities = {}
 $passwords = {}
 $codes = {}
 $nonces = {}
+$code_verifier = {}
 $tokens = {}
 $defaultMessages = [{:senderEmail => "john@doe.com", :senderName => "John Doe", :message => "Hello World!"}]
 $messages = {}
@@ -92,10 +95,10 @@ if not ENV["CLIENT_NAME"].nil?
   end
 end
 
-def oidc_token_request(authz_code)
+def oidc_token_request(authz_code, code_verifier)
   puts "Executing OpenID Token request"
   begin
-    uri = URI.parse("#{$token_endpoint}?grant_type=authorization_code&redirect_uri=#{$redirect_uri}&code=#{CGI.escape(authz_code)}")
+    uri = URI.parse("#{$token_endpoint}?grant_type=authorization_code&redirect_uri=#{$redirect_uri}&code=#{CGI.escape(authz_code)}&code_verifier=#{code_verifier}")
     req = Net::HTTP::Post.new(uri)
     req.basic_auth $client_id, $client_secret
     return http_request(req,uri)
@@ -128,8 +131,8 @@ def parse_token_response(response)
   return {:access_token => access_token, :id_token => id_token}
 end
 
-def exchange_code_for_token(code, expected_nonce)
-  resp = oidc_token_request(code)
+def exchange_code_for_token(code, expected_nonce, code_verifier)
+  resp = oidc_token_request(code, code_verifier)
   p resp
 
   tokens = parse_token_response(resp)
@@ -235,8 +238,12 @@ get "/login" do
 
   if (!id_ticket.nil?)
     begin
-      identity = exchange_code_for_token(id_ticket, $nonces[session["id"]])
+      identity = exchange_code_for_token(id_ticket, $nonces[session["id"]], $code_verfier[session["id"]])
       $nonces[session["id"]] = nil
+      $code_verifier[session["id"]] = SecureRandom.urlsafe_base64(64)
+      digest = Digest::SHA256.new
+      digest << $code_verifier[session["id"]]
+      code_challenge = digest.base64digest.gsub("+", "-").gsub("/", "_").gsub("=","")
       token = $knownIdentities[identity]
       email = $knownIdentities[identity]["email"]
       session["user"] = identity
@@ -248,6 +255,7 @@ get "/login" do
           :title => "Login",
           :subtitle => "You did not provide a valid email. Please grant us access to your email!",
           :nonce => nonce,
+          :code_challenge => code_challenge,
           :authorization_endpoint => $authorization_endpoint,
           :redicret_uri => $redirect_uri,
           :client_id => $client_id,

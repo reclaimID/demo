@@ -3,7 +3,7 @@
 %div{:class => "mid", :style => "border-right: 1px dashed #aaa; text-align: center;"}
   %span Login by clicking on the re:claimID button.
   %br
-  %a{:class => "button reclaim big", :href => "#{locals[:authorization_endpoint]}?redirect_uri=#{locals[:redirect_uri]}&client_id=#{locals[:client_id]}&response_type=code&scope=openid%20email%20full_name&nonce=#{locals[:nonce]}"}
+  %a{:class => "button reclaim big", :href => "#{locals[:authorization_endpoint]}?redirect_uri=#{locals[:redirect_uri]}&client_id=#{locals[:client_id]}&response_type=code&scope=openid%20email%20full_name&nonce=#{locals[:nonce]}&code_challenge=#{locals[:code_challenge]}&code_challenge_method=S256"}
     <img src="/reclaim_logo.png"/>
     !!!<span style="font-family: Audiowide">re</span><span style="font-family: Helvetica Neue">:claimID</span>
 

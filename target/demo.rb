@@ -238,7 +238,7 @@ get "/login" do
 
   if (!id_ticket.nil?)
     begin
-      identity = exchange_code_for_token(id_ticket, $nonces[session["id"]], $code_verfier[session["id"]])
+      identity = exchange_code_for_token(id_ticket, $nonces[session["id"]], $code_verifier[session["id"]])
       $nonces[session["id"]] = nil
       token = $knownIdentities[identity]
       email = $knownIdentities[identity]["email"]

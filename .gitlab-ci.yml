@@ -1,7 +1,7 @@
 image: docker:stable
 
-services:
-  - docker:dind
+#services:
+#  - docker:dind
 
 variables:
   CONTAINER_IMAGE: registry.gitlab.com/$CI_PROJECT_PATH
@@ -13,6 +13,7 @@ before_script:
 build:
   stage: build
   tags:
+    - netsec
     - docker
   script:
     - docker pull $CONTAINER_IMAGE:latest || true

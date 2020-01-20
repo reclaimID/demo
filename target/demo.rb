@@ -95,6 +95,28 @@ if not ENV["CLIENT_NAME"].nil?
   end
 end
 
+def getFhgMail(identity)
+  return "" if identity.nil? or $knownIdentities[identity].nil? or $knownIdentities[identity]["_claim_names"].nil? or $knownIdentities[identity]["_claim_sources"].nil?
+  $knownIdentities[identity]["_claim_names"] = JSON.parse($knownIdentities[identity]["_claim_names"])
+  $knownIdentities[identity]["_claim_sources"] = JSON.parse($knownIdentities[identity]["_claim_sources"])
+  return "" if $knownIdentities[identity]["_claim_names"]["fhgUid"].nil?
+  attest_name = $knownIdentities[identity]["_claim_names"]["fhgUid"]
+  return "" if $knownIdentities[identity]["_claim_sources"][attest_name].nil?
+  $knownIdentities[identity]["_claim_sources"][attest_name] = JSON.parse($knownIdentities[identity]["_claim_sources"][attest_name])
+  jwt = $knownIdentities[identity]["_claim_sources"][attest_name]["JWT"]
+  return "" if jwt.nil?
+  #Manually split for now TODO correctly verify JWT
+  payload_json = jwt.split(".")[1]
+  return "" if payload_json.nil?
+  begin
+    payload = JSON.parse(Base64.decode64(payload_json))
+  rescue
+    return ""
+  end
+  return "" if payload.nil?
+  return "FhG account: #{CGI.escapeHTML(payload["fhgUid"])}"
+end
+
 def oidc_token_request(authz_code, code_verifier)
   puts "Executing OpenID Token request"
   begin
@@ -192,7 +214,7 @@ get '/' do
       return haml :info, :locals => {
         :user => getUser(identity),
         :title => "Welcome.",
-        :subtitle => "Welcome back #{getUser(identity)} (#{CGI.escapeHTML(email)})",
+        :subtitle => "Welcome back #{getUser(identity)} (#{CGI.escapeHTML(email)} #{getFhgUid(identity)})",
         :messages => $messages[identity],
         :content => ""}
     end

@@ -95,12 +95,12 @@ if not ENV["CLIENT_NAME"].nil?
   end
 end
 
-def getFhgMail(identity)
+def getFhgUid(identity)
   return "" if identity.nil? or $knownIdentities[identity].nil? or $knownIdentities[identity]["_claim_names"].nil? or $knownIdentities[identity]["_claim_sources"].nil?
   $knownIdentities[identity]["_claim_names"] = JSON.parse($knownIdentities[identity]["_claim_names"])
   $knownIdentities[identity]["_claim_sources"] = JSON.parse($knownIdentities[identity]["_claim_sources"])
-  return "" if $knownIdentities[identity]["_claim_names"]["fhgUid"].nil?
-  attest_name = $knownIdentities[identity]["_claim_names"]["fhgUid"]
+  return "" if $knownIdentities[identity]["_claim_names"]["fhguid"].nil?
+  attest_name = $knownIdentities[identity]["_claim_names"]["fhguid"]
   return "" if $knownIdentities[identity]["_claim_sources"][attest_name].nil?
   $knownIdentities[identity]["_claim_sources"][attest_name] = JSON.parse($knownIdentities[identity]["_claim_sources"][attest_name])
   jwt = $knownIdentities[identity]["_claim_sources"][attest_name]["JWT"]
@@ -114,7 +114,7 @@ def getFhgMail(identity)
     return ""
   end
   return "" if payload.nil?
-  return "FhG account: #{CGI.escapeHTML(payload["fhgUid"])}"
+  return "FhG account: #{CGI.escapeHTML(payload["fhguid"])}"
 end
 
 def oidc_token_request(authz_code, code_verifier)

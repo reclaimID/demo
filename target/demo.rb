@@ -11,14 +11,17 @@ require 'socksify'
 require 'socksify/http'
 require 'securerandom'
 require 'digest'
-
+require 'webrick'
 require './config.rb'
 
 enable :sessions
 
+set :port, 4568
 set :bind, '0.0.0.0'
 set :show_exceptions, true
 Socksify::debug = true
+
+WEBrick::HTTPRequest.const_set("MAX_URI_LENGTH", 50240)
 
 config = DemoConfig::load()
 $reclaim_rest_endpoint = config['system']['runtime']
@@ -114,7 +117,7 @@ def getFhgUid(identity)
     return ""
   end
   return "" if payload.nil?
-  return "FhG account: #{CGI.escapeHTML(payload["fhguid"])}"
+  return ", Fraunhofer employee"
 end
 
 def oidc_token_request(authz_code, code_verifier)
@@ -199,7 +202,7 @@ end
 
 def getUser(identity)
   return nil if identity.nil? or $knownIdentities[identity].nil?
-  return CGI.escapeHTML($knownIdentities[identity]["full_name"]) unless $knownIdentities[identity]["full_name"].nil?
+  return CGI.escapeHTML($knownIdentities[identity]["name"]) unless $knownIdentities[identity]["name"].nil?
   return CGI.escapeHTML($knownIdentities[identity]["sub"])
 end
 
@@ -312,10 +315,12 @@ get "/submit" do
 
   if (!identity.nil?)
     token = $knownIdentities[identity]
+    name = CGI.escapeHTML($knownIdentities[identity]["sub"])
+    name = CGI.escapeHTML($knownIdentities[identity]["name"]) unless $knownIdentities[identity]["name"].nil?
     if (!token.nil?)
       email = token["email"]
       msg = {:senderEmail=>CGI.escapeHTML(email),
-             :senderName=>CGI.escapeHTML($knownIdentities[identity]["full_name"]),
+             :senderName=>name,
              :message=>CGI.escapeHTML(params["message"])}
       $messages[identity] << msg
       redirect($myhost)

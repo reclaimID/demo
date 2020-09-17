@@ -202,8 +202,13 @@ end
 
 def getUser(identity)
   return nil if identity.nil? or $knownIdentities[identity].nil?
-  return CGI.escapeHTML($knownIdentities[identity]["name"]) unless $knownIdentities[identity]["name"].nil?
-  return CGI.escapeHTML($knownIdentities[identity]["sub"])
+  name = [
+    $knownIdentities[identity]["given_name"],
+    $knownIdentities[identity]["middle_name"],
+    $knownIdentities[identity]["family_name"]
+  ].join(" ").strip
+  name = $knownIdentities[identity]["sub"] if name.empty?
+  return name
 end
 
 get '/' do
@@ -315,12 +320,10 @@ get "/submit" do
 
   if (!identity.nil?)
     token = $knownIdentities[identity]
-    name = CGI.escapeHTML($knownIdentities[identity]["sub"])
-    name = CGI.escapeHTML($knownIdentities[identity]["name"]) unless $knownIdentities[identity]["name"].nil?
     if (!token.nil?)
       email = token["email"]
       msg = {:senderEmail=>CGI.escapeHTML(email),
-             :senderName=>name,
+             :senderName=>CGI.escapeHTML(getUser(identity)),
              :message=>CGI.escapeHTML(params["message"])}
       $messages[identity] << msg
       redirect($myhost)
